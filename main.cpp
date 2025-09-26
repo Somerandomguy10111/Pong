@@ -105,17 +105,17 @@ int main() {
 
     PlayerRect p1{100,0};
     PlayerRect p2{XMAX-100, 200};
-    DottedLine line{1080/2.f, 0, 600, 50};
+    DottedLine line{XMAX/2.f, 0, YMAX, 50};
 
     Vector leftVector = Vector{-1,0};
     Vector rightVector = Vector{1,0};
     Vector downVector = Vector{0,1};
     Vector upVector = Vector{0,-1};
 
-    Rectangle leftZone{0,100, 0, 1000};
-    Rectangle rightZone{1080-100,2000, 0, 1000};
-    Rectangle upperZone{0,2000,-2000,0};
-    Rectangle lowerZone{0,2000, 600, 2000};
+    Rectangle leftZone{0,100, 0, 2*YMAX};
+    Rectangle rightZone{XMAX-100,2*XMAX, 0, 2*YMAX};
+    Rectangle upperZone{0,2*XMAX,-2*YMAX,0};
+    Rectangle lowerZone{0,2*XMAX, YMAX, 2*YMAX};
 
 
     Collidable leftWall{rightVector, leftZone};
@@ -159,7 +159,7 @@ int main() {
         rightWall.collide(ball.position, ball.velocity);
         topWall.collide(ball.position, ball.velocity);
         bottomWall.collide(ball.position, ball.velocity);
-        std::cout << ball.velocity.norm() << "\n";
+        // std::cout << ball.velocity.norm() << "\n";
 
         // 3 | Render frame
         window.clear(sf::Color::Transparent);
