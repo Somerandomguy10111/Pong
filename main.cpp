@@ -3,7 +3,7 @@
 #include <bits/this_thread_sleep.h>
 #include <SFML/Graphics.hpp>
 #include "vector.h"
-
+#include <cmath>
 
 class PlayerRect {
 public:
@@ -59,25 +59,26 @@ public:
 class Collidable {
 public:
     Vector n{0,0};
-    Vector p{0,0};
+    Vector c{0,0};
     float d,L;
 
-    Collidable(Vector orientation, Vector p, float d, float L) {
-        this->n = orientation;
-        this->p = p;
+    Collidable(Vector n, Vector c, float d, float L) {
+        this->n = n;
+        this->c = c;
         this->d = d;
         this->L = L;
     }
 
     bool contains(Vector& pos) {
-        Vector s1 = Vector(-n.x, -n.y);
-        Vector s2 = Vector(-n.y, n.x);
+        Vector s1 = Vector(-n.x, -n.y); // Dot product positive if penetrating in direction -n
+        Vector s2 = Vector(-n.y, n.x);  // Gains in absolute value parallel to collsion surface
         Vector q = pos;
 
-        std::cout << s2.dot(q-p) << "\n";
-        bool axis_one = s1.dot(q-p) <= d and s1.dot(q-p) >= 0;
-        bool axis_two = s2.dot(q-p) <= L and s2.dot(q-p) >= 0;
-        return axis_one and axis_two;
+        std::cout << s1.dot(q-c) << "\n";
+        std::cout << s2.dot(q-c) << "\n";
+        bool thickness_axis = s1.dot(q-c) <= d and s1.dot(q-c) >= 0;
+        bool length_axis = std::fabs(s2.dot(q-c)) < L/2;
+        return thickness_axis and length_axis;
     }
 
     void collide(Vector& pos, Vector& vel) {
@@ -96,10 +97,10 @@ public:
     sf::CircleShape visual{12};
 
     Ball() {
-        position.x = 1080;
+        position.x = 500;
         position.y = 300;
-        velocity.x = -0.05;
-        velocity.y = 0;
+        velocity.x = 0;
+        velocity.y = 0.025;
     }
 
     void move() {
@@ -120,25 +121,9 @@ int main() {
     PlayerRect p2{XMAX-100, 200};
     DottedLine line{XMAX/2.f, 0, YMAX, 50};
 
-    // Vector leftVector = Vector{-1,0};
-    // Vector rightVector = Vector{1,0};
-    // Vector downVector = Vector{0,1};
-    // Vector upVector = Vector{0,-1};
+    // Collidable topWall(Vector{0,1}, Vector{0,0}, 4000, 4000);
+    Collidable bottomWall{Vector{0,-1}, Vector{0, YMAX}, 500, 4000};
 
-    // Rectangle leftZone{0,100, 0, 2*YMAX};
-    // Rectangle rightZone{XMAX-100,2*XMAX, 0, 2*YMAX};
-    // Rectangle upperZone{0,2*XMAX,-2*YMAX,0};
-    // Rectangle lowerZone{0,2*XMAX, YMAX, 2*YMAX};
-
-
-    // Collidable leftWall{rightVector, leftZone};
-    // Collidable topWall{downVector, upperZone};
-    // Collidable bottomWall{upVector, lowerZone};
-    // Collidable rightWall{leftVector, rightZone};
-    Vector n = Vector{1,0};
-    Vector p = Vector{XMAX/2,0};
-
-    Collidable bounce = Collidable(n, p, 100, 1000);
     Ball ball;
 
     while (window.isOpen()) {
@@ -172,12 +157,8 @@ int main() {
         p2.move();
         ball.move();
 
-        bounce.collide(ball.position, ball.velocity);
-        // leftWall.collide(ball.position, ball.velocity);
-        // rightWall.collide(ball.position, ball.velocity);
         // topWall.collide(ball.position, ball.velocity);
-        // bottomWall.collide(ball.position, ball.velocity);
-        // std::cout << ball.velocity.norm() << "\n";
+        bottomWall.collide(ball.position, ball.velocity);
 
         // 3 | Render frame
         window.clear(sf::Color::Transparent);
@@ -192,9 +173,6 @@ int main() {
         // Wait for next frame
         auto frameEnd = std::chrono::steady_clock::now();
         auto computationTime = frameEnd - frameStart;
-
-        auto printableTime = std::chrono::duration_cast<std::chrono::milliseconds>(frameEnd-frameStart).count();
-        // std::cout << "ComputationTime" << printableTime << "ms\n";
 
         if (computationTime > frameDuration) {
             auto wait_time = frameDuration - computationTime;
