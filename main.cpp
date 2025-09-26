@@ -58,23 +58,36 @@ public:
 
 class Collidable {
 public:
-    Vector orientation{0,0};
-    Rectangle collisionZone{0,0,0,0};
+    Vector n{0,0};
+    Vector p{0,0};
+    float d,L;
 
-    Collidable(Vector orientation, Rectangle collisionZone) {
-        this->orientation = orientation;
-        this->collisionZone = collisionZone;
+    Collidable(Vector orientation, Vector p, float d, float L) {
+        this->n = orientation;
+        this->p = p;
+        this->d = d;
+        this->L = L;
+    }
+
+    bool contains(Vector& pos) {
+        Vector s1 = Vector(-n.x, -n.y);
+        Vector s2 = Vector(-n.y, n.x);
+        Vector q = pos;
+
+        std::cout << s2.dot(q-p) << "\n";
+        bool axis_one = s1.dot(q-p) <= d and s1.dot(q-p) >= 0;
+        bool axis_two = s2.dot(q-p) <= L and s2.dot(q-p) >= 0;
+        return axis_one and axis_two;
     }
 
     void collide(Vector& pos, Vector& vel) {
-        if (collisionZone.contains(pos)) {
-            vel = vel-orientation*orientation.dot(vel)*2;
+        if (this->contains(pos)) {
+            vel = vel-n*n.dot(vel)*2;
             pos = pos+vel;
         }
     }
 
 };
-
 
 class Ball {
 public:
@@ -83,10 +96,10 @@ public:
     sf::CircleShape visual{12};
 
     Ball() {
-        position.x = 100;
-        position.y = 100;
-        velocity.x = 0.1;
-        velocity.y = -0.05;
+        position.x = 1080;
+        position.y = 300;
+        velocity.x = -0.05;
+        velocity.y = 0;
     }
 
     void move() {
@@ -107,21 +120,25 @@ int main() {
     PlayerRect p2{XMAX-100, 200};
     DottedLine line{XMAX/2.f, 0, YMAX, 50};
 
-    Vector leftVector = Vector{-1,0};
-    Vector rightVector = Vector{1,0};
-    Vector downVector = Vector{0,1};
-    Vector upVector = Vector{0,-1};
+    // Vector leftVector = Vector{-1,0};
+    // Vector rightVector = Vector{1,0};
+    // Vector downVector = Vector{0,1};
+    // Vector upVector = Vector{0,-1};
 
-    Rectangle leftZone{0,100, 0, 2*YMAX};
-    Rectangle rightZone{XMAX-100,2*XMAX, 0, 2*YMAX};
-    Rectangle upperZone{0,2*XMAX,-2*YMAX,0};
-    Rectangle lowerZone{0,2*XMAX, YMAX, 2*YMAX};
+    // Rectangle leftZone{0,100, 0, 2*YMAX};
+    // Rectangle rightZone{XMAX-100,2*XMAX, 0, 2*YMAX};
+    // Rectangle upperZone{0,2*XMAX,-2*YMAX,0};
+    // Rectangle lowerZone{0,2*XMAX, YMAX, 2*YMAX};
 
 
-    Collidable leftWall{rightVector, leftZone};
-    Collidable topWall{downVector, upperZone};
-    Collidable bottomWall{upVector, lowerZone};
-    Collidable rightWall{leftVector, rightZone};
+    // Collidable leftWall{rightVector, leftZone};
+    // Collidable topWall{downVector, upperZone};
+    // Collidable bottomWall{upVector, lowerZone};
+    // Collidable rightWall{leftVector, rightZone};
+    Vector n = Vector{1,0};
+    Vector p = Vector{XMAX/2,0};
+
+    Collidable bounce = Collidable(n, p, 100, 1000);
     Ball ball;
 
     while (window.isOpen()) {
@@ -155,10 +172,11 @@ int main() {
         p2.move();
         ball.move();
 
-        leftWall.collide(ball.position, ball.velocity);
-        rightWall.collide(ball.position, ball.velocity);
-        topWall.collide(ball.position, ball.velocity);
-        bottomWall.collide(ball.position, ball.velocity);
+        bounce.collide(ball.position, ball.velocity);
+        // leftWall.collide(ball.position, ball.velocity);
+        // rightWall.collide(ball.position, ball.velocity);
+        // topWall.collide(ball.position, ball.velocity);
+        // bottomWall.collide(ball.position, ball.velocity);
         // std::cout << ball.velocity.norm() << "\n";
 
         // 3 | Render frame
