@@ -100,7 +100,8 @@ public:
         position.x = 500;
         position.y = 300;
         velocity.x = 0;
-        velocity.y = 0.025;
+        velocity.y = 0.01;
+        visual.setOrigin(12,12);
     }
 
     void move() {
@@ -121,7 +122,7 @@ int main() {
     PlayerRect p2{XMAX-100, 200};
     DottedLine line{XMAX/2.f, 0, YMAX, 50};
 
-    // Collidable topWall(Vector{0,1}, Vector{0,0}, 4000, 4000);
+    Collidable topWall(Vector{0,1}, Vector{0,0}, 500, 4000);
     Collidable bottomWall{Vector{0,-1}, Vector{0, YMAX}, 500, 4000};
 
     Ball ball;
@@ -157,7 +158,7 @@ int main() {
         p2.move();
         ball.move();
 
-        // topWall.collide(ball.position, ball.velocity);
+        topWall.collide(ball.position, ball.velocity);
         bottomWall.collide(ball.position, ball.velocity);
 
         // 3 | Render frame
