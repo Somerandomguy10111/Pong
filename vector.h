@@ -11,9 +11,9 @@ public:
 
     Vector(float x, float y);
 
-    Vector operator+(Vector& other) const;
+    Vector operator+(const Vector& other) const;
 
-    Vector operator-(Vector& other) const;
+    Vector operator-(const Vector& other) const;
 
     Vector operator*(float scalar) const;
 };

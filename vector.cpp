@@ -5,11 +5,11 @@ Vector::Vector(const float x, const float y) {
     this->y = y;
 }
 
-Vector Vector::operator+(Vector& other) const {
+Vector Vector::operator+(const Vector& other) const {
     return Vector{this->x+other.x, this->y+other.y};
 }
 
-Vector Vector::operator-(Vector& other) const {
+Vector Vector::operator-(const Vector& other) const {
     return Vector{this->x-other.x, this->y-other.y};
 }
 
