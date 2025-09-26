@@ -5,56 +5,6 @@
 #include "vector.h"
 #include <cmath>
 
-class PlayerRect {
-public:
-    Vector pos{0,0};
-    Vector velocity{0,0};
-    sf::RectangleShape visual{sf::Vector2f(12.f,100.f)};
-
-    PlayerRect(const float x,const float y) {
-        this->pos.x = x;
-        this->pos.y = y;
-        this->visual.setPosition(x,y);
-    }
-
-    void move() {
-        pos = pos+velocity;
-        visual.setPosition(pos.x, pos.y);
-    }
-};
-
-class DottedLine {
-public:
-    std::vector<sf::RectangleShape> visuals;
-
-    DottedLine(const float x, const float ystart, const float yend, const float interval) {
-        for (float y = ystart; y < yend; y += interval) {
-            sf::RectangleShape rect{sf::Vector2f(20.f, 20.f)};
-            rect.setPosition(x, y);
-            this->visuals.push_back(rect);
-        }
-    }
-};
-
-
-class Rectangle {
-public:
-    float xmin, xmax, ymin, ymax;
-
-    Rectangle(float xmin, float xmax, float ymin, float ymax) {
-        this->xmin = xmin;
-        this->xmax = xmax;
-        this->ymin = ymin;
-        this->ymax = ymax;
-    }
-
-    bool contains(const Vector v) {
-        bool xrange = xmin <= v.x && v.x <= xmax;
-        bool yrange = ymin <= v.y && v.y <= ymax;
-        return xrange && yrange;
-    }
-};
-
 
 class Collidable {
 public:
@@ -74,9 +24,10 @@ public:
         Vector s2 = Vector(-n.y, n.x);  // Gains in absolute value parallel to collsion surface
         Vector q = pos;
 
-        bool thickness_axis = s1.dot(q-c) <= d-extent and s1.dot(q-c) >= -extent;
-        bool length_axis = std::fabs(s2.dot(q-c)) < L/2;
-        return thickness_axis and length_axis;
+        float penetration_depth = s1.dot(q-c);
+        float parallel_distance = std::fabs(s2.dot(q-c));
+
+        return penetration_depth >= -extent and parallel_distance <= L/2;
     }
 
     void collide(Vector& pos, Vector& vel, float extent = 0) {
@@ -88,6 +39,45 @@ public:
 
 };
 
+class PlayerRect {
+public:
+    float length{100.f};
+    Vector pos;
+    Vector velocity{0,0};
+    Collidable coll;
+    sf::RectangleShape visual;
+
+    PlayerRect(const float x,const float y, float direction = 1.f)
+        : pos{x,y},
+          coll(Vector{direction*1,0}, Vector{0,0}, 12, length),
+          visual{sf::Vector2f(12.f,length)}
+    {
+        auto rect = this->visual;
+        this->visual.setPosition(x, y);
+        this->visual.setOrigin(rect.getSize().x/2, rect.getSize().y/2);
+    }
+
+    void move() {
+        coll.c = pos;
+        pos = pos+velocity;
+        visual.setPosition(pos.x, pos.y);
+    }
+};
+
+class DottedLine {
+public:
+    std::vector<sf::RectangleShape> visuals;
+
+    DottedLine(const float x, const float ystart, const float yend, const float interval) {
+        for (float y = ystart; y < yend; y += interval) {
+            sf::RectangleShape rect{sf::Vector2f(20.f, 20.f)};
+            rect.setPosition(x, y);
+            this->visuals.push_back(rect);
+        }
+    }
+};
+
+
 class Ball {
 public:
     Vector position{0,0};
@@ -97,8 +87,8 @@ public:
     Ball(float radius = 12) {
         position.x = 500;
         position.y = 300;
-        velocity.x = 0;
-        velocity.y = 0.01;
+        velocity.x = 0.04;
+        velocity.y = 0;
 
         model.setRadius(radius);
         model.setOrigin(12,12);
@@ -120,7 +110,7 @@ int main() {
     sf::RenderWindow window(sf::VideoMode(XMAX, YMAX), "Window");
 
     PlayerRect p1{100,0};
-    PlayerRect p2{XMAX-100, 200};
+    PlayerRect p2{XMAX-100, 200, -1};
     DottedLine line{XMAX/2.f, 0, YMAX, 50};
 
     Collidable topWall(Vector{0,1}, Vector{0,0}, 500, 4000);
@@ -159,6 +149,8 @@ int main() {
         p2.move();
         ball.move();
 
+        p1.coll.collide(ball.position, ball.velocity, ball.model.getRadius());
+        p2.coll.collide(ball.position, ball.velocity, ball.model.getRadius());
         topWall.collide(ball.position, ball.velocity, ball.model.getRadius());
         bottomWall.collide(ball.position, ball.velocity, ball.model.getRadius());
 
