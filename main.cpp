@@ -1,4 +1,5 @@
 #include <chrono>
+#include <iostream>
 #include <bits/this_thread_sleep.h>
 #include <SFML/Graphics.hpp>
 #include "vector.h"
@@ -35,6 +36,46 @@ public:
     }
 };
 
+
+class Rectangle {
+public:
+    float xmin, xmax, ymin, ymax;
+
+    Rectangle(float xmin, float xmax, float ymin, float ymax) {
+        this->xmin = xmin;
+        this->xmax = xmax;
+        this->ymin = ymin;
+        this->ymax = ymax;
+    }
+
+    bool contains(const Vector v) {
+        bool xrange = xmin <= v.x && v.x <= xmax;
+        bool yrange = ymin <= v.y && v.y <= ymax;
+        return xrange && yrange;
+    }
+};
+
+
+class Collidable {
+public:
+    Vector orientation{0,0};
+    Rectangle collisionZone{0,0,0,0};
+
+    Collidable(Vector orientation, Rectangle collisionZone) {
+        this->orientation = orientation;
+        this->collisionZone = collisionZone;
+    }
+
+    void collide(Vector& pos, Vector& vel) {
+        if (collisionZone.contains(pos)) {
+            vel = vel-orientation*orientation.dot(vel)*2;
+            pos = pos+vel;
+        }
+    }
+
+};
+
+
 class Ball {
 public:
     Vector position{0,0};
@@ -44,23 +85,43 @@ public:
     Ball() {
         position.x = 100;
         position.y = 100;
-        velocity.x = 0.05;
+        velocity.x = 0.1;
+        velocity.y = -0.05;
     }
 
     void move() {
         position = position + velocity;
+        position.y = position.y + velocity.y;
         this->visual.setPosition(position.x, position.y);
     }
 };
 
 int main() {
     constexpr int FPS = 60;
+    float XMAX = 1080;
+    float YMAX = 600;
     const auto frameDuration = std::chrono::milliseconds(1000 / FPS);
-    sf::RenderWindow window(sf::VideoMode(1080,600), "Window");
+    sf::RenderWindow window(sf::VideoMode(XMAX, YMAX), "Window");
 
     PlayerRect p1{100,0};
-    PlayerRect p2{1080-100, 200};
+    PlayerRect p2{XMAX-100, 200};
     DottedLine line{1080/2.f, 0, 600, 50};
+
+    Vector leftVector = Vector{-1,0};
+    Vector rightVector = Vector{1,0};
+    Vector downVector = Vector{0,1};
+    Vector upVector = Vector{0,-1};
+
+    Rectangle leftZone{0,100, 0, 1000};
+    Rectangle rightZone{1080-100,2000, 0, 1000};
+    Rectangle upperZone{0,2000,-2000,0};
+    Rectangle lowerZone{0,2000, 600, 2000};
+
+
+    Collidable leftWall{rightVector, leftZone};
+    Collidable topWall{downVector, upperZone};
+    Collidable bottomWall{upVector, lowerZone};
+    Collidable rightWall{leftVector, rightZone};
     Ball ball;
 
     while (window.isOpen()) {
@@ -74,10 +135,11 @@ int main() {
             }
 
             if (event.type == sf::Event::KeyPressed) {
-                if (event.key.code == sf::Keyboard::W)    p1.velocity.y = -1.f;
-                if (event.key.code == sf::Keyboard::S)    p1.velocity.y = 1.f;
-                if (event.key.code == sf::Keyboard::Up)   p2.velocity.y = -1.f;
-                if (event.key.code == sf::Keyboard::Down) p2.velocity.y = 1.f;
+                float topSpeed = 0.1f;
+                if (event.key.code == sf::Keyboard::W)    p1.velocity.y = -topSpeed;
+                if (event.key.code == sf::Keyboard::S)    p1.velocity.y = topSpeed;
+                if (event.key.code == sf::Keyboard::Up)   p2.velocity.y = -topSpeed;
+                if (event.key.code == sf::Keyboard::Down) p2.velocity.y = topSpeed;
             }
 
             if (event.type == sf::Event::KeyReleased) {
@@ -93,6 +155,12 @@ int main() {
         p2.move();
         ball.move();
 
+        leftWall.collide(ball.position, ball.velocity);
+        rightWall.collide(ball.position, ball.velocity);
+        topWall.collide(ball.position, ball.velocity);
+        bottomWall.collide(ball.position, ball.velocity);
+        std::cout << ball.velocity.norm() << "\n";
+
         // 3 | Render frame
         window.clear(sf::Color::Transparent);
         window.draw(p1.visual);
@@ -103,15 +171,19 @@ int main() {
             window.draw(line.visuals[j]);
         }
 
-        window.display();
-
         // Wait for next frame
         auto frameEnd = std::chrono::steady_clock::now();
         auto computationTime = frameEnd - frameStart;
+
+        auto printableTime = std::chrono::duration_cast<std::chrono::milliseconds>(frameEnd-frameStart).count();
+        // std::cout << "ComputationTime" << printableTime << "ms\n";
+
         if (computationTime > frameDuration) {
             auto wait_time = frameDuration - computationTime;
             std::this_thread::sleep_for(wait_time);
         }
+        window.display();
+
 
     }
 

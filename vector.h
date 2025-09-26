@@ -16,6 +16,10 @@ public:
     Vector operator-(const Vector& other) const;
 
     Vector operator*(float scalar) const;
+
+    float norm();
+
+    float dot(const Vector& other);
 };
 
 
