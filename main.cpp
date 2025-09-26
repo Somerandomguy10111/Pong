@@ -69,20 +69,18 @@ public:
         this->L = L;
     }
 
-    bool contains(Vector& pos) {
+    bool contains(Vector& pos, float extent = 0) {
         Vector s1 = Vector(-n.x, -n.y); // Dot product positive if penetrating in direction -n
         Vector s2 = Vector(-n.y, n.x);  // Gains in absolute value parallel to collsion surface
         Vector q = pos;
 
-        std::cout << s1.dot(q-c) << "\n";
-        std::cout << s2.dot(q-c) << "\n";
-        bool thickness_axis = s1.dot(q-c) <= d and s1.dot(q-c) >= 0;
+        bool thickness_axis = s1.dot(q-c) <= d-extent and s1.dot(q-c) >= -extent;
         bool length_axis = std::fabs(s2.dot(q-c)) < L/2;
         return thickness_axis and length_axis;
     }
 
-    void collide(Vector& pos, Vector& vel) {
-        if (this->contains(pos)) {
+    void collide(Vector& pos, Vector& vel, float extent = 0) {
+        if (this->contains(pos, extent)) {
             vel = vel-n*n.dot(vel)*2;
             pos = pos+vel;
         }
@@ -94,20 +92,23 @@ class Ball {
 public:
     Vector position{0,0};
     Vector velocity{0,0};
-    sf::CircleShape visual{12};
+    sf::CircleShape model{0};
 
-    Ball() {
+    Ball(float radius = 12) {
         position.x = 500;
         position.y = 300;
         velocity.x = 0;
         velocity.y = 0.01;
-        visual.setOrigin(12,12);
+
+        model.setRadius(radius);
+        model.setOrigin(12,12);
+
     }
 
     void move() {
         position = position + velocity;
         position.y = position.y + velocity.y;
-        this->visual.setPosition(position.x, position.y);
+        this->model.setPosition(position.x, position.y);
     }
 };
 
@@ -158,14 +159,14 @@ int main() {
         p2.move();
         ball.move();
 
-        topWall.collide(ball.position, ball.velocity);
-        bottomWall.collide(ball.position, ball.velocity);
+        topWall.collide(ball.position, ball.velocity, ball.model.getRadius());
+        bottomWall.collide(ball.position, ball.velocity, ball.model.getRadius());
 
         // 3 | Render frame
         window.clear(sf::Color::Transparent);
         window.draw(p1.visual);
         window.draw(p2.visual);
-        window.draw(ball.visual);
+        window.draw(ball.model);
         std::size_t N_DOTS = line.visuals.size();
         for (int j = 0; j < N_DOTS; j++) {
             window.draw(line.visuals[j]);
